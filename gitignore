@@ -1,0 +1,13 @@
+coverage
+cover/
+.DS_Store
+.hypothesis/
+.idea/
+*.log
+*.log.*
+*.pyc
+__pycache__
+*.pyo
+.pytest_cache
+venv
+.vscode

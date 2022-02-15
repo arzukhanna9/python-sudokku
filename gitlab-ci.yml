@@ -1,0 +1,102 @@
+---
+image: python:3.9.6-slim
+
+stages:
+  - check
+  - test
+  - build
+  - deploy
+
+before_script:
+  - python -V
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - pip install -U -r requirements.txt
+  - flake8 --version
+  - pylint --version
+  - black --version
+  - echo isort $(isort --version-number)
+  - sphinx-build --version
+
+check:
+  stage: check
+  image: python:3.9.6-slim
+  script:
+    - isort --check --diff *.py lib/*.py tests/*.py
+    - black --check *.py lib/*.py tests/*.py
+    - flake8 *.py lib/*.py tests/*.py
+    - pylint *.py lib/*.py tests/*.py
+  cache:
+    key: build-cache
+    paths:
+      - .cache/pip
+      - venv/
+
+test:
+  stage: test
+  image: python:3.9.6-slim
+  script:
+    - pytest -v --cov=lib --cov-report term-missing tests/
+  cache:
+    key: build-cache
+    paths:
+      - .cache/pip
+      - venv/
+
+run:
+  stage: test
+  image: python:3.9.6-slim
+  script:
+    - cat data/easy.txt
+    - python solve_sudoku.py data/easy.txt
+    - python solve_sudoku.py data/easy.json
+    - python solve_sudoku.py -v data/easy.txt
+    - python solve_sudoku.py -h
+    - python solve_sudoku.py --version
+  cache:
+    key: build-cache
+    paths:
+      - .cache/pip
+      - venv/
+
+build:
+  image: docker:20.10.7
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - |
+      echo ${CI_BUILD_TOKEN} | \
+        docker login \
+          --username ${CI_REGISTRY_USER} \
+          --password-stdin \
+          ${CI_REGISTRY}
+  script:
+    - |
+      docker build \
+        --pull \
+        --tag ${CI_REGISTRY_IMAGE} \
+        --tag ${CI_COMMIT_SHORT_SHA} \
+        .
+    - docker push ${CI_REGISTRY_IMAGE}
+
+pages:
+  image: sphinxdoc/sphinx:4.1.1
+  stage: deploy
+  #  only:
+  #    refs:
+  #      - main
+  #      - develop
+  except: ["tags"]
+  before_script: [""]
+  script:
+    - pip install pytest pytest-cov pytest-html hypothesis
+    - pytest -v --html=cover/report.html --cov=lib tests/
+    - coverage html -d cover lib/sudoku.py
+    - (cd sphinx; make html)
+    - mv target/docs/html public
+    - cp -pr cover/ public/
+  artifacts:
+    paths:
+      - public

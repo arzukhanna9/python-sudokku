@@ -1,0 +1,55 @@
+---
+
+name: Python application
+
+# yamllint disable rule:truthy
+on: push
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: setup
+        run: |
+          python -V
+          python -m pip install --upgrade pip virtualenv
+          python -m virtualenv venv
+          source venv/bin/activate
+          pip install -U -r requirements.txt
+          flake8 --version
+          pylint --version
+          black --version
+          echo isort $(isort --version-number)
+
+      - name: check
+        run: |
+          source venv/bin/activate
+          isort --check --diff *.py lib/*.py tests/*.py
+          black --check *.py lib/*.py tests/*.py
+          flake8 *.py lib/*.py tests/*.py
+          pylint *.py lib/*.py tests/*.py
+
+      - name: test
+        if: github.ref == 'refs/heads/main'||github.ref == 'refs/heads/develop'
+        run: |
+          source venv/bin/activate
+          pytest -v --cov-report term-missing --cov=lib tests/
+
+      - name: run
+        if: github.ref == 'refs/heads/main'||github.ref == 'refs/heads/develop'
+        run: |
+          source venv/bin/activate
+          ./solve_sudoku.py -h
+          ./solve_sudoku.py --version
+          ./solve_sudoku.py data/easy.txt
+          ./solve_sudoku.py data/easy.json
+          ./solve_sudoku.py -v data/easy.txt

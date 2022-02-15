@@ -1,0 +1,11 @@
+tests/test_hypothesis.py::test_has_letter:
+
+  - during reuse phase (0.00 seconds):
+    - Typical runtimes: ~ 1ms, ~ 62% in data generation
+    - 1 passing examples, 0 failing examples, 0 invalid examples
+
+  - during generate phase (0.16 seconds):
+    - Typical runtimes: 0-1 ms, ~ 74% in data generation
+    - 99 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
